@@ -1,0 +1,19 @@
+In this tutorial we will doing backups of application directory (nexus-2.14.3-02/) and a Sonatype Work directory (sonatype-work/). The application directory contains all of the executable files and libraries that comprise the Nexus application, and the Sonatype Work directory contains all of the installation-specific configuration and repository data for your own installation of Nexus.
+1. For backuping we will use rsync command. Let's try to install it:
+
+yum install -y rsync
+
+2. As a destination point of our backups we use /root/nexus_backups directory on remote host 192.168.103.226 (rsync must be installed on both hosts):
+
+rsync -avzh /usr/local/sonatype-work/ root@192.168.103.226:/root/nexus_backups/sonatype-work
+rsync -avzh /usr/local/nexus-2.14.3-02/ root@192.168.103.226:/root/nexus_backups/nexus-2.14.3-02
+
+3. Let's try to automate our backuping process by using cron. We need to edit file /etc/crontab and add a line like this (This config tells cron to run the rsync command as user root, weekly):
+
+vim /etc/crontab
+0 0 * * 0 root rsync -avzh /usr/local/sonatype-work/ root@192.168.103.226:/root/nexus_backups/sonatype-work
+0 1 * * 0 root rsync -avzh /usr/local/nexus-2.14.3-02/ root@192.168.103.226:/root/nexus_backups/nexus-2.14.3-02
+
+4. And now we need to restart daemon of cron:
+
+systemctl restart crond.service
