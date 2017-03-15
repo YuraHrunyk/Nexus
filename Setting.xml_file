@@ -1,0 +1,21 @@
+In this tutorial we create file settings.xml, which is configuration file for accessing to Nexus Repository Manager and contains credentials for doing that.
+1. Create .m2 directory and move here:
+
+mkdir /root/.m2
+cd /root/.m2
+
+2. Creat file settings.xml:
+
+vim settings.xml
+    <?xml version="1.0" encoding="UTF-8" standalone="no"?>
+    <settings>
+        xmlns="http://maven.apache.org/SETTINGS/1.1.0"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/SETTINGS/1.1.0 http://maven.apache.org/xsd/settings-1.1.0.xsd">
+        <servers>
+            <server>
+                <id>OMS-Release</id>
+                <username>admin</username>
+                <password>admin123</password>
+            </server>
+        </servers>
+    </settings>
