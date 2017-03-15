@@ -1,0 +1,151 @@
+In this tutorial we will install SSL on Nexus Repository Manager.
+1. At first we need move to $NEXUS_HOME directory:
+
+cd /usr/local/nexus-2.14.3-02/
+
+2. Jetty Startup Configuration:
+
+vim bin/jsw/conf/wrapper.conf
+    # JSW Configuration file
+    #
+    # For complete coverage of available configuration, please go here:
+    # http://wrapper.tanukisoftware.org/doc/english/properties.html
+    #
+    # Some "most often used" keywords are added to end of this file
+    # to be used as a "guideline". They are NOT the complete list of
+    # keywords.
+
+    # Set the JSW working directory (used as base for resolving relative paths)
+    wrapper.working.dir=../../..
+
+    # Set the JVM executable
+    # (modify this to absolute path if you need a Java that is not on the OS path)
+    wrapper.java.command=java
+
+    # The main class that JSW will execute within JVM
+    wrapper.java.mainclass=org.sonatype.nexus.bootstrap.jsw.JswLauncher
+
+    # The JVM classpath
+    wrapper.java.classpath.1=bin/jsw/lib/wrapper-3.2.3.jar
+    wrapper.java.classpath.2=./lib/*.jar
+    wrapper.java.classpath.3=./conf/
+
+    # The library path
+    wrapper.java.library.path.1=bin/jsw/lib
+
+    # Additional JVM parameters (tune if needed, but match the sequence of numbers!)
+    wrapper.java.additional.1=-XX:MaxPermSize=192m
+    wrapper.java.additional.2=-Djava.io.tmpdir=./tmp
+    wrapper.java.additional.3=-Djava.net.preferIPv4Stack=true
+    wrapper.java.additional.4=-Dcom.sun.jndi.ldap.connect.pool.protocol="plain ssl"
+    wrapper.java.additional.4.stripquotes=TRUE
+    #wrapper.java.additional.5=-Xdebug
+    #wrapper.java.additional.6=-Xnoagent
+    #wrapper.java.additional.7=-Djava.compiler=NONE
+    #wrapper.java.additional.8=-Xrunjdwp:transport=dt_socket,server=y,suspend=y,address=8000
+    #wrapper.java.additional.9=-XX:+HeapDumpOnOutOfMemoryError
+
+    wrapper.app.parameter.1=./conf/jetty.xml
+    wrapper.app.parameter.2=./conf/jetty-requestlog.xml
+    wrapper.app.parameter.3=./conf/jetty-https.xml
+
+    .....
+
+3. Nexus Properties SSL Port Configuration:
+
+vim conf/nexus.properties
+    #
+    # Sonatype Nexus (TM) Open Source Version
+    # Copyright (c) 2008-present Sonatype, Inc.
+    # All rights reserved. Includes the third-party code listed at http://links.sonatype.com/products/nexus/oss/attributions.
+    #
+    # This program and the accompanying materials are made available under the terms of the Eclipse Public License Version 1.0,
+    # which accompanies this distribution and is available at http://www.eclipse.org/legal/epl-v10.html.
+    #
+    # Sonatype Nexus (TM) Professional Version is available from Sonatype, Inc. "Sonatype" and "Sonatype Nexus" are trademarks
+    # of Sonatype, Inc. Apache Maven is a trademark of the Apache Software Foundation. M2eclipse is a trademark of the
+    # Eclipse Foundation. All other trademarks are the property of their respective owners.
+    #
+
+    # Sonatype Nexus
+    # ==============
+    # This is the most basic configuration of Nexus.
+
+    # Jetty section
+    application-port=8081
+    application-host=0.0.0.0
+    nexus-webapp=${bundleBasedir}/nexus
+    nexus-webapp-context-path=/nexus
+    application-port-ssl=443
+    .....
+
+4. Generation SSL certificates using keytool:
+
+keytool -genkey -alias nexus -keyalg RSA -keypass passwd -storepass passwd -keystore keystore.jks
+    What is your first and last name?
+        [Unknown]:  Andriy Koval
+    What is the name of your organizational unit?
+        [Unknown]:  DevOps-218
+    What is the name of your organization?
+        [Unknown]:  SoftServe Inc.
+    What is the name of your City or Locality?
+        [Unknown]:  Lviv
+    What is the name of your State or Province?
+        [Unknown]:  Lviv Region
+    What is the two-letter country code for this unit?
+        [Unknown]:  UA
+    Is CN=Andriy Koval, OU=DevOps-218, O=SoftServe Inc., L=Lviv, ST=Lviv Region, C=UA correct?
+        [no]:  yes
+
+5. Moving keystore.jks to conf/ssl directory:
+
+mkdir conf/ssl
+cp keystore.jks conf/ssl/
+vim conf/jetty-https.xml
+    <!DOCTYPE Configure PUBLIC "-//Jetty//Configure//EN" "http://www.eclipse.org/jetty/configure.dtd">
+<!-- =============================================================== -->
+<!-- Configure a secure HTTPS connector                              -->
+<!-- =============================================================== -->
+<Configure id="Server" class="org.eclipse.jetty.server.Server">
+    <!--
+    ==== HTTPS ====
+    Set the following inside nexus.properties:
+    application-port-ssl: the port to listen for https connections
+    -->
+    <Call name="addConnector">
+        <Arg>
+            <New id="HTTPSConnector" class="org.sonatype.nexus.bootstrap.jetty.InstrumentedSslSelectChannelConnector">
+                <Arg>
+                    <New class="org.eclipse.jetty.util.ssl.SslContextFactory">
+                        <Set name="keyStore">./conf/ssl/keystore.jks</Set>
+                        <Set name="trustStore">./conf/ssl/keystore.jks</Set>
+                        <Set name="keyStorePassword">passwd</Set>
+                        <Set name="keyManagerPassword">passwd</Set>
+                        <Set name="trustStorePassword">passwd</Set>
+                        <Set name="excludeProtocols">
+                            <Array type="java.lang.String">
+                                <Item>SSL</Item>
+                                <Item>SSLv2</Item>
+                                <Item>SSLv2Hello</Item>
+                                <Item>SSLv3</Item>
+                            </Array>
+                        </Set>
+                    </New>
+                </Arg>
+                <Set name="host">
+                    <Property name="application-host"/>
+                </Set>
+                <Set name="port">
+                    <Property name="application-port-ssl"/>
+                </Set>
+                <Set name="forwarded">true</Set>
+            </New>
+        </Arg>
+    </Call>
+</Configure>
+
+6. Restart Nexus:
+
+service nexus restart
+
+7. Move to https://10.1.2.5/nexus and accept ssl certificate.
