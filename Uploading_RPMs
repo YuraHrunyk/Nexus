@@ -1,0 +1,6 @@
+In this tutorial we will upload RPM packages to Nexus Repository Manager
+Yon need to use curl command to do this:
+
+curl --upload-file package.rpm -u admin:admin123 -v http://10.1.2.5/nexus/content/repositories/yum-local/package.rpm
+
+If you move to http://192.168.103.140/nexus/content/repositories/YUM-Repository you will see your package.rpm
