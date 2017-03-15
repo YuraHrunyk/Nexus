@@ -1,0 +1,75 @@
+In this tutorial we will configure YUM repository for downloading packages from Nexus Repository Manager
+1. At first we need to install some packages to configure of repositories priority:
+
+yum install -y yum-priorities
+
+2. Move to configuration file of priority plugin and switch on it:
+
+vim /etc/yum/pluginconf.d/priorities.conf
+    [main]
+    enabled = 1
+
+3. Move to /etc/yum.repos.d and create a configuration file nexus.repo:
+
+cd /etc/yum.repos.d
+vim nexus.repo
+    [yum-local]
+    name=yum-local
+    baseurl=http://10.1.2.5/nexus/content/repositories/yum-local/
+    enabled=1
+    protect=0
+    gpgcheck=0
+    metadata_expire=30s
+    autorefresh=1
+    type=rpm-md
+    priority=1
+
+    [centos-repo]
+    name=centos-repo
+    baseurl=http://10.1.2.5/nexus/content/repositories/centos/
+    enabled=1
+    gpgcheck=0
+    gpgcheck=0
+    metadata_expire=30s
+    autorefresh=1
+    type=rpm-md
+    priority=2
+
+The first repo yum-local is our local repository on Nexus where we upload our own RPM packages and the second centos-repo is a proxy repository of CentOS on Nexus which will use for downloading other packages and dependencies which is needed to work for our own packages.
+4. Cleaning our repositories:
+
+yum clean all
+    Loaded plugins: fastestmirror, priorities
+    Cleaning repos: base centos-repo epel extras mysql-connectors-community mysql-tools-community mysql57-community updates yum-local
+    Cleaning up everything
+    Cleaning up list of fastest mirrors
+
+5. Update of repositories list:
+
+yum update
+
+6. Let's try to check if our repositories will appear in list of repositories:
+
+yum repolist
+    Loaded plugins: fastestmirror, priorities
+    Loading mirror speeds from cached hostfile
+     * base: ftp.colocall.net
+     * epel: ftp.icm.edu.pl
+     * extras: ftp.colocall.net
+     * updates: ftp.colocall.net
+    10372 packages excluded due to repository priority protections
+    repo id                                                                 repo name                                                           status
+    base/7/x86_64                                                           CentOS-7 - Base                                                     0+9,363
+    !centos-repo                                                            repo                                                                9,362+1
+    epel/x86_64                                                             Extra Packages for Enterprise Linux 7 - x86_64                      10,868+197
+    extras/7/x86_64                                                         CentOS-7 - Extras                                                   182+19
+    mysql-connectors-community/x86_64                                       MySQL Connectors Community                                          24+6
+    mysql-tools-community/x86_64                                            MySQL Tools Community                                               40
+    mysql57-community/x86_64                                                MySQL 5.7 Community Server                                          166
+    updates/7/x86_64                                                        CentOS-7 - Updates                                                  0+786
+    !yum-local                                                              yum-local                                                           2
+    repolist: 20,644
+
+7. Well done! Now we can try to install RPM packages from our Nexus Repository Manager using command:
+
+yum install <package-name>
